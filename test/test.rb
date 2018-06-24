@@ -40,8 +40,8 @@ end
 describe '/proc に有効な csv を POST した時に' do
   data1 = "やまだ,山田 太郎,様,100-0014,東京都千代田区永田町1丁目7-1,,,,,"
   data2 = "さとう,佐藤 花子,様,102-8651,東京都千代田区隼町4-2100-0014,最高裁判所内,二郎,様,,"
-  csv_file1 = "tmp/upload_csv1.csv"
-  csv_file2 = "tmp/upload_csv2.csv"
+  csv_file1 = "test/upload_csv1.csv"
+  csv_file2 = "test/upload_csv2.csv"
 
   before do
     create_sample_file(csv_file1, [data1])
@@ -77,7 +77,7 @@ describe '/proc に不正な csv を POST した時に' do
   data_invalid1 = "やまだ,,様,100-0014,東京都千代田区永田町1丁目7-1,,,,," # 宛名なし
   data_invalid2 = "すずき,鈴木 太郎,様,100-0014,,,,,," # 住所なし
   data_valid = "さとう,佐藤 花子,様,102-8651,東京都千代田区隼町4-2100-0014,最高裁判所内,二郎,様,,"
-  csv_file = "tmp/upload_csv1.csv"
+  csv_file = "test/upload_csv1.csv"
 
   it 'response が attachment でない(ダウンロードの形式でない)こと' do
     create_sample_file(csv_file, [data_invalid1])
@@ -123,7 +123,8 @@ end
 describe '/proc に有効だが不完全な csv を POST した時に' do
   require 'poppler'
   data_correct = "やまだ,山田 太郎,様,100-0014,東京都千代田区永田町1丁目7-1,,,,,"
-  csv_file = "tmp/upload_csv.csv"
+  csv_file = "test/upload_csv.csv"
+  Dir.mkdir('./tmp') if not File.exist?('./tmp')
   pdf_file = "tmp/download.pdf"
 
   before do
@@ -132,7 +133,7 @@ describe '/proc に有効だが不完全な csv を POST した時に' do
          'text/csv')
     write_pdf(pdf_file, last_response.body)
     @download_correct_md5 = Digest::MD5.hexdigest\
-      (Poppler::Document.new(pdf_file).get_page("1").get_text)
+      (Poppler::Document.new(pdf_file).get_page(0).get_text)
   end
 
   it '郵便番号に〒マークが入っていても正しく pdf が作成されること' do
@@ -146,7 +147,7 @@ describe '/proc に有効だが不完全な csv を POST した時に' do
     last_response.header["Content-Type"].must_include "application/pdf"
     write_pdf(pdf_file, last_response.body)
     download_incorrect_md5 = Digest::MD5.hexdigest\
-      (Poppler::Document.new(pdf_file).get_page("1").get_text)
+      (Poppler::Document.new(pdf_file).get_page(0).get_text)
     download_incorrect_md5.must_equal @download_correct_md5
   end
 
@@ -160,7 +161,7 @@ describe '/proc に有効だが不完全な csv を POST した時に' do
     last_response.header["Content-Type"].must_include "application/pdf"
     write_pdf(pdf_file, last_response.body)
     download_incorrect_md5 = Digest::MD5.hexdigest\
-      (Poppler::Document.new(pdf_file).get_page("1").get_text)
+      (Poppler::Document.new(pdf_file).get_page(0).get_text)
     download_incorrect_md5.must_equal @download_correct_md5
   end
 end
