@@ -41,6 +41,7 @@ class Pdf < Prawn::Document
           margin: [32.6, 85, 35.4, 73.7])
     @p_name_ofs = 0
     @f_name = nil
+    @p_name_height = 0
   end
 
   def stroke_address(person)
@@ -56,6 +57,7 @@ class Pdf < Prawn::Document
         text zip[i]
       end
     end
+    @p_name_height = set_p_name_height(person)
 
     render_addr(person.addr1, 160, 320)
     render_addr(person.addr2, 130, 300) if person.addr2
@@ -92,6 +94,20 @@ class Pdf < Prawn::Document
     else
       "/usr/local/share/fonts/Carlito/Carlito-Regular.ttf"
     end
+  end
+
+  def set_p_name_height(person)
+    p_name = split_name(person.name)[1]
+    fam1_p_name = split_name(person.family1)[1]
+    fam2_p_name = split_name(person.family2)[1]
+    p_n_h = p_name.length
+    if fam1_p_name
+      p_n_h = (p_n_h > fam1_p_name.length) ? p_n_h : fam1_p_name.length
+    end
+    if fam2_p_name
+      p_n_h = (p_n_h > fam2_p_name.length) ? p_n_h : fam2_p_name.length
+    end
+    return p_n_h
   end
 
   def config_font(str_array) # return size, pitch
@@ -168,9 +184,9 @@ class Pdf < Prawn::Document
   def render_name(name, title_, x_ofs)
     f_name, p_name = split_name(name)
     title = title_.split("")
-    size, pitch = 35, 30
+    size, pitch = 35, 32
     break_pitch = pitch * 0.3
-    start_from = 300 #270
+    start_from = 275
     font(locate_font("j-kaisho"))
     font_size(size)
 
@@ -178,8 +194,20 @@ class Pdf < Prawn::Document
       yy = tategaki(f_name, x_ofs, start_from, size, pitch)
       @p_name_ofs = yy - break_pitch
     end
-    yy = tategaki(p_name, x_ofs, @p_name_ofs, size, pitch)
-    tategaki(title, x_ofs, yy - break_pitch, size, pitch)
+
+    height = pitch * @p_name_height  # 一番長いpersonal name の印刷幅(高さ)
+    title_start_point = @p_name_ofs - height
+
+    if p_name.length < @p_name_height
+      p_name_pitch = pitch + (height - p_name.length * pitch) / p_name.length
+      p_name_ofs = (p_name_pitch - pitch) / 2
+      yy = tategaki(p_name, x_ofs, @p_name_ofs - p_name_ofs, size, p_name_pitch)
+      yy = yy + p_name_pitch - pitch - break_pitch
+    else
+      yy = tategaki(p_name, x_ofs, @p_name_ofs, size, pitch)
+    end
+
+    tategaki(title, x_ofs, title_start_point, size, pitch)
   end
 end
 
